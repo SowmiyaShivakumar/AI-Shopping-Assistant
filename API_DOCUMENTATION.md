@@ -13,7 +13,7 @@ Returns all products in the catalog.
 ```json
 {
   "products": [...],
-  "total": 64
+  "total": 1000
 }
 ```
 
@@ -63,7 +63,7 @@ Add a new product and re-index the vector store.
 ```json
 {
   "message": "Product added successfully",
-  "product": { "id": 65, ... }
+  "product": { "id": 1001, ... }
 }
 ```
 
