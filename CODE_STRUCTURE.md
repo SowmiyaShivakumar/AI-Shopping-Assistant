@@ -9,7 +9,7 @@ The application is split into **3 logical microservices** within a single FastAP
 ### Microservice 1 — Product Catalog (`/products`)
 **File:** `app/services/products_data.py`
 
-- Stores 64 products across categories: ethnic, western, formal, party, activewear, footwear, accessories, winterwear, kids, nightwear, swimwear
+- Stores 1000 products across categories: ethnic, western, formal, party, activewear, footwear, accessories, winterwear, kids, nightwear, swimwear
 - Each product has: id, name, description, category, occasion[], price, image_url, in_stock
 - `get_all_products()` — returns full catalog
 - `get_product_by_id(id)` — single product lookup
