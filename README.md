@@ -1,4 +1,4 @@
-# DRAPE — AI-Powered Outfit Recommendation Platform
+# ShopSense — AI-Powered Outfit Recommendation Platform
 
 A semantic search-powered outfit recommendation system built with **FastAPI**, **OpenAI Embeddings**, and **ChromaDB**.
 
@@ -8,12 +8,11 @@ A semantic search-powered outfit recommendation system built with **FastAPI**, *
 
 ### 1. Clone & Install
 ```bash
-cd FastApi
 pip install -r requirements.txt
 ```
 
 ### 2. Set Environment Variable
-Create a `.env` file in the `FastApi/` directory:
+Create a `.env` file in the directory:
 ```env
 OPENAI_API_KEY=sk-your-openai-key-here
 ```
@@ -33,7 +32,6 @@ http://localhost:8000
 ## Project Structure
 ```
 ai-product-search/
-└── FastApi/
     ├── README.md
     ├── CODE_STRUCTURE.md
     ├── DESIGN_DECISIONS.md
@@ -59,8 +57,6 @@ ai-product-search/
 
 ## Features
 - Natural language outfit search (e.g. "What to wear to a temple?")
-- 64 products across 10 categories
+- 1000 products (Myntra dataset)
 - Cosine similarity ranking via ChromaDB
 - Cart system with quantity management
-- Search history & analytics logging
-- Category filtering in product catalog
