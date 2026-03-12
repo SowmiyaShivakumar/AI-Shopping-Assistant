@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Cart — DRAPE{% endblock %}
+
+{% block content %}
+<section class="cart-section">
+    <div class="cart-header">
+        <h1 class="page-title">Your Cart</h1>
+        <button class="clear-btn" onclick="clearCart()">Clear All</button>
+    </div>
+
+    <div class="cart-layout">
+        <div class="cart-items" id="cart-items">
+            <p class="empty-cart-msg">Your cart is empty. <a href="/">Discover outfits →</a></p>
+        </div>
+
+        <div class="cart-summary" id="cart-summary" style="display:none">
+            <h3 class="summary-title">Order Summary</h3>
+            <div class="summary-rows" id="summary-rows"></div>
+            <div class="summary-total">
+                <span>Total</span>
+                <span id="cart-total">₹0</span>
+            </div>
+            <button class="checkout-btn">Proceed to Checkout</button>
+            <p class="checkout-note">Free shipping on orders above ₹999</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function renderCart() {
+    const cart = getCart();
+    const container = document.getElementById('cart-items');
+    const summary = document.getElementById('cart-summary');
+
+    if (!cart.length) {
+        container.innerHTML = '<p class="empty-cart-msg">Your cart is empty. <a href="/">Discover outfits →</a></p>';
+        summary.style.display = 'none';
+        return;
+    }
+
+    summary.style.display = 'block';
+
+    container.innerHTML = cart.map(item => `
+        <div class="cart-item">
+            <img src="${item.image_url}" alt="${item.name}" class="cart-item-img" onerror="this.src='https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80'">
+            <div class="cart-item-info">
+                <h4 class="cart-item-name">${item.name}</h4>
+                <p class="cart-item-cat">${item.category}</p>
+                <span class="cart-item-price">₹${item.price.toLocaleString('en-IN')}</span>
+            </div>
+            <div class="cart-item-actions">
+                <div class="qty-control">
+                    <button onclick="updateQty(${item.id}, ${item.qty - 1})">−</button>
+                    <span>${item.qty}</span>
+                    <button onclick="updateQty(${item.id}, ${item.qty + 1})">+</button>
+                </div>
+                <button class="remove-btn" onclick="removeFromCart(${item.id})">Remove</button>
+            </div>
+        </div>
+    `).join('');
+
+    // Summary
+    const rows = document.getElementById('summary-rows');
+    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    rows.innerHTML = cart.map(i => `
+        <div class="summary-row">
+            <span>${i.name} × ${i.qty}</span>
+            <span>₹${(i.price * i.qty).toLocaleString('en-IN')}</span>
+        </div>
+    `).join('');
+    document.getElementById('cart-total').textContent = `₹${total.toLocaleString('en-IN')}`;
+}
+
+renderCart();
+</script>
+{% endblock %}

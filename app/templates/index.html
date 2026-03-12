@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}DRAPE — AI Outfit Finder{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <p class="eyebrow">✦ Women's Fashion &nbsp;·&nbsp; Powered by Semantic AI</p>
+    <h1 class="hero-title">What are you<br><em>dressing for?</em></h1>
+    <p class="hero-sub">Describe any occasion and we'll find your perfect outfit.</p>
+    <div class="search-row">
+        <input type="text" id="prompt-input" class="search-input"
+               placeholder="e.g. ethnic kurta for a wedding, casual dress for brunch…" autocomplete="off"/>
+        <button class="search-btn" id="search-btn" onclick="searchOutfits()">
+            <span id="btn-text">Search</span>
+            <span id="btn-loader" class="hidden">Searching…</span>
+        </button>
+    </div>
+</section>
+
+<!-- Results -->
+<section class="results-section hidden" id="results-section">
+    <div class="results-header">
+        <h2 class="results-title">Top Recommendations</h2>
+        <span class="meta-pill" id="results-meta"></span>
+    </div>
+    <div class="products-grid" id="products-grid"></div>
+</section>
+
+<!-- Product Modal -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" id="modal" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <div class="modal-inner" id="modal-inner"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentProducts = [];
+
+function cleanDesc(raw) {
+    return raw.replace(/•/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function buildBullets(raw) {
+    // Split on bullet char or sentences starting with capital after period
+    const cleaned = raw.replace(/\n/g, ' • ').replace(/\s+/g, ' ').trim();
+    const parts = cleaned.split('•').map(s => s.trim()).filter(s => s.length > 2);
+    if (parts.length <= 1) {
+        // No bullets — split into sentences
+        return raw.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+                  .split(/(?<=[.!?])\s+/)
+                  .filter(s => s.length > 5)
+                  .map(s => `<li>${s}</li>`).join('');
+    }
+    return parts.map(s => `<li>${s}</li>`).join('');
+}
+
+function openModal(idx) {
+    const p = currentProducts[idx];
+    const stars = p.rating ? '⭐ ' + parseFloat(p.rating).toFixed(1) : 'No rating';
+    const reviews = p.reviews_count > 0 ? `${p.reviews_count} reviews` : '';
+
+    document.getElementById('modal-inner').innerHTML = `
+        <div class="modal-layout">
+            <div class="modal-img-wrap">
+                <img src="${p.image_url}" alt="${p.name}"
+                     onerror="this.src='https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80'">
+            </div>
+            <div class="modal-info">
+                <p class="modal-brand">${p.brand}</p>
+                <h2 class="modal-name">${p.name}</h2>
+                <div class="modal-tags">
+                    <span class="tag">${p.category}</span>
+                    <span class="tag">${p.color}</span>
+                    <span class="tag match-tag">${Math.round(p.similarity_score*100)}% match</span>
+                </div>
+                <div class="modal-rating">${stars} ${reviews ? '· ' + reviews : ''}</div>
+                <div class="modal-divider"></div>
+                <ul class="modal-bullets">
+                    ${buildBullets(p.description)}
+                </ul>
+                <div class="modal-divider"></div>
+                <div class="modal-footer">
+                    <span class="modal-price">&#8377;${p.price.toLocaleString('en-IN')}</span>
+                    <button class="add-btn modal-add" onclick="addToCart(${JSON.stringify(p).replace(/"/g,'&quot;')}); closeModal()">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>`;
+
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+async function searchOutfits() {
+    const prompt = document.getElementById('prompt-input').value.trim();
+    if (!prompt) return;
+
+    document.getElementById('btn-text').classList.add('hidden');
+    document.getElementById('btn-loader').classList.remove('hidden');
+    document.getElementById('search-btn').disabled = true;
+
+    try {
+        const res = await fetch('/products/recommend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        currentProducts = data.recommendations || [];
+
+        const sec = document.getElementById('results-section');
+        sec.classList.remove('hidden');
+        document.getElementById('results-meta').textContent =
+            `"${data.expanded_query || data.query}" · ${data.latency_ms}ms`;
+
+        const grid = document.getElementById('products-grid');
+        if (data.message && !data.recommendations.length) {
+            grid.innerHTML = `<p class="empty not-available">🚫 ${data.message}</p>`;
+        } else if (!currentProducts.length) {
+            grid.innerHTML = '<p class="empty">No matching products found. Try a different query.</p>';
+        } else {
+            grid.innerHTML = currentProducts.map((p, idx) => {
+                const stars = p.rating ? '⭐ ' + parseFloat(p.rating).toFixed(1) : '';
+                const reviews = p.reviews_count > 0 ? ` (${p.reviews_count})` : '';
+                return `
+                <div class="card" onclick="openModal(${idx})">
+                    <div class="card-img-wrap">
+                        <img src="${p.image_url}" alt="${p.name}" loading="lazy"
+                             onerror="this.src='https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80'">
+                    </div>
+                    <div class="card-body">
+                        <p class="brand">${p.brand} · ${p.color}</p>
+                        <h3>${p.name}</h3>
+                        <div class="card-meta">
+                            <span class="rating-txt">${stars}${reviews}</span>
+                            <span class="score-txt">${Math.round(p.similarity_score*100)}% match</span>
+                        </div>
+                        <div class="score-wrap">
+                            <div class="score-bar" style="width:${Math.round(p.similarity_score*100)}%"></div>
+                        </div>
+                        <div class="card-footer">
+                            <strong class="price">&#8377;${p.price.toLocaleString('en-IN')}</strong>
+                            <button class="add-btn" onclick="event.stopPropagation(); addToCart(${JSON.stringify(p).replace(/"/g,'&quot;')})">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+        alert('Search failed. Please try again.');
+    } finally {
+        document.getElementById('btn-text').classList.remove('hidden');
+        document.getElementById('btn-loader').classList.add('hidden');
+        document.getElementById('search-btn').disabled = false;
+    }
+}
+
+document.getElementById('prompt-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchOutfits();
+});
+</script>
+{% endblock %}
